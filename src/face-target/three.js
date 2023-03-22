@@ -1,6 +1,6 @@
 import { Scene, WebGLRenderer, PerspectiveCamera, sRGBEncoding, Mesh, MeshStandardMaterial, Group } from "three";
 //import { CSS3DRenderer } from '../libs/CSS3DRenderer.js';
-import {CSS3DRenderer} from 'three/addons/renderers/CSS3DRenderer.js'
+import {CSS3DRenderer} from 'three/examples/jsm/renderers/CSS3DRenderer.js'
 import { Controller } from "./controller.js";
 import { UI } from "../ui/ui.js";
 import {BufferGeometry,BufferAttribute} from "three";
@@ -34,9 +34,14 @@ export class MindARThree {
     window.addEventListener('resize', this._resize.bind(this));
   }
 
-  async start() {
+  async start(cameraConstraints = {
+    audio: false, 
+    video: {
+      facingMode: 'user',
+    }
+  }) {
     this.ui.showLoading();
-    await this._startVideo();
+    await this._startVideo(cameraConstraints);
     await this._startAR();
     this.ui.hideLoading();
   }
@@ -83,7 +88,7 @@ export class MindARThree {
     return anchor;
   }
 
-  _startVideo() {
+  _startVideo(cameraConstraints) {
     return new Promise((resolve, reject) => {
       this.video = document.createElement('video');
 
@@ -102,11 +107,7 @@ export class MindARThree {
         return;
       }
 
-      navigator.mediaDevices.getUserMedia({
-        audio: false, video: {
-          facingMode: (this.shouldFaceUser ? 'face' : 'environment'),
-        }
-      }).then((stream) => {
+      navigator.mediaDevices.getUserMedia(cameraConstraints).then((stream) => {
         this.video.addEventListener('loadedmetadata', () => {
           this.video.setAttribute('width', this.video.videoWidth);
           this.video.setAttribute('height', this.video.videoHeight);
