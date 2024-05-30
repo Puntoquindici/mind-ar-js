@@ -7,7 +7,9 @@ import {BufferGeometry,BufferAttribute} from "three";
 const THREE={BufferGeometry,BufferAttribute};
 
 export class MindARThree {
-  constructor({container, uiLoading="yes", uiScanning="yes", uiError="yes", filterMinCF=null, filterBeta=null}) {
+  constructor({container, uiLoading="yes", uiScanning="yes", uiError="yes", filterMinCF=null, filterBeta=null,
+    userDeviceId = null, environmentDeviceId = null, disableFaceMirror = false,
+  }) {
     this.container = container;
     this.ui = new UI({ uiLoading, uiScanning, uiError });
 
@@ -15,6 +17,7 @@ export class MindARThree {
       filterMinCF: filterMinCF,
       filterBeta: filterBeta,
     });
+    this.disableFaceMirror = disableFaceMirror;
     this.scene = new Scene();
     this.cssScene = new Scene();
     this.renderer = new WebGLRenderer({ antialias: true, alpha: true });
@@ -22,9 +25,13 @@ export class MindARThree {
     this.renderer.outputEncoding = sRGBEncoding;
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.camera = new PerspectiveCamera();
+    this.userDeviceId = userDeviceId;
+    this.environmentDeviceId = environmentDeviceId;
 
     this.anchors = [];
     this.faceMeshes = [];
+
+    this.latestEstimate = null;
 
     this.container.appendChild(this.renderer.domElement);
     this.container.appendChild(this.cssRenderer.domElement);
@@ -83,6 +90,10 @@ export class MindARThree {
     return anchor;
   }
 
+  getLatestEstimate() {
+    return this.latestEstimate;
+  }
+
   _startVideo() {
     return new Promise((resolve, reject) => {
       this.video = document.createElement('video');
@@ -102,11 +113,25 @@ export class MindARThree {
         return;
       }
 
-      navigator.mediaDevices.getUserMedia({
-        audio: false, video: {
-          facingMode: (this.shouldFaceUser ? 'face' : 'environment'),
+      const constraints = {
+        audio: false,
+        video: {}
+      };
+      if (this.shouldFaceUser) {
+        if (this.userDeviceId) {
+          constraints.video.deviceId = { exact: this.userDeviceId };
+        } else {
+          constraints.video.facingMode = 'user';
         }
-      }).then((stream) => {
+      } else {
+        if (this.environmentDeviceId) {
+          constraints.video.deviceId = { exact: this.environmentDeviceId };
+        } else {
+          constraints.video.facingMode = 'environment';
+        }
+      }
+
+      navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
         this.video.addEventListener('loadedmetadata', () => {
           this.video.setAttribute('width', this.video.videoWidth);
           this.video.setAttribute('height', this.video.videoHeight);
@@ -140,13 +165,16 @@ export class MindARThree {
         }
 
         if (hasFace) {
-          const { metricLandmarks, faceMatrix, faceScale } = estimateResult;
+          const { metricLandmarks, faceMatrix, faceScale, blendshapes} = estimateResult;
+          this.latestEstimate = estimateResult;
+
           for (let i = 0; i < this.anchors.length; i++) {
             const landmarkIndex = this.anchors[i].landmarkIndex;
             const landmarkMatrix = this.controller.getLandmarkMatrix(landmarkIndex);
 
             if (this.anchors[i].css) {
               const cssScale = 0.001;
+
               const scaledElements = [
                 cssScale * landmarkMatrix[0], cssScale * landmarkMatrix[1], landmarkMatrix[2], landmarkMatrix[3],
                 cssScale * landmarkMatrix[4], cssScale * landmarkMatrix[5], landmarkMatrix[6], landmarkMatrix[7],
@@ -161,21 +189,15 @@ export class MindARThree {
           for (let i = 0; i < this.faceMeshes.length; i++) {
             this.faceMeshes[i].matrix.set(...faceMatrix);
           }
+        } else {
+          this.latestEstimate = null;
         }
       }
       this._resize();
-      await this.controller.setup(video);
 
-      const { fov, aspect, near, far } = this.controller.getCameraParams();
-      this.camera.fov = fov;
-      this.camera.aspect = aspect;
-      this.camera.near = near;
-      this.camera.far = far;
-      this.camera.updateProjectionMatrix();
+      const flipFace = this.shouldFaceUser && !this.disableFaceMirror;
 
-      this.renderer.setSize(this.video.videoWidth, this.video.videoHeight);
-      this.cssRenderer.setSize(this.video.videoWidth, this.video.videoHeight);
-
+      await this.controller.setup(flipFace);
       await this.controller.dummyRun(video);
 
       this._resize();
@@ -187,6 +209,22 @@ export class MindARThree {
   _resize() {
     const { renderer, cssRenderer, camera, container, video } = this;
     if (!video) return;
+
+    if (true) { // only needed if video dimension updated (e.g. when mobile orientation changes)
+      this.video.setAttribute('width', this.video.videoWidth);
+      this.video.setAttribute('height', this.video.videoHeight);
+      this.controller.onInputResized(video);
+
+      const { fov, aspect, near, far } = this.controller.getCameraParams();
+      this.camera.fov = fov;
+      this.camera.aspect = aspect;
+      this.camera.near = near;
+      this.camera.far = far;
+      this.camera.updateProjectionMatrix();
+
+      this.renderer.setSize(this.video.videoWidth, this.video.videoHeight);
+      this.cssRenderer.setSize(this.video.videoWidth, this.video.videoHeight);
+    }
 
     let vw, vh; // display css width, height
     const videoRatio = video.videoWidth / video.videoHeight;
@@ -203,6 +241,12 @@ export class MindARThree {
     video.style.left = (-(vw - container.clientWidth) / 2) + "px";
     video.style.width = vw + "px";
     video.style.height = vh + "px";
+
+    if (this.shouldFaceUser && !this.disableFaceMirror) {
+      video.style.transform = 'scaleX(-1)';
+    } else {
+      video.style.transform = 'scaleX(1)';
+    }
 
     const canvas = renderer.domElement;
     const cssCanvas = cssRenderer.domElement;

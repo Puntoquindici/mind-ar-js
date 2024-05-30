@@ -1,6 +1,7 @@
 import {defineConfig,build} from 'vite'
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
 const outDir = 'dist-dev'
 
@@ -8,7 +9,9 @@ const moduleConfig={
     mode: 'development',
     assetsInclude:'**/*.html',
     base:'./',
-    plugins:[],
+    plugins:[
+        basicSsl()
+    ],
     build: {
         outDir: outDir,
         emptyOutDir:false,
@@ -40,6 +43,7 @@ const faceAframeConfig=defineConfig({
         outDir: outDir,
         emptyOutDir:false,
         sourcemap:'inline' ,
+        minify: false,
         lib: {
             name:"MINDAR",
             fileName:"[name]",
@@ -61,6 +65,7 @@ const imageAframeConfig=defineConfig({
         outDir: outDir,
         emptyOutDir:false,
         sourcemap:'inline' ,
+        minify: false,
         lib: {
             name:"MINDAR",
             fileName:"[name]",
