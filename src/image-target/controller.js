@@ -7,6 +7,7 @@ import {CropDetector} from './detector/crop-detector.js';
 import {Compiler} from './compiler.js';
 import {InputLoader} from './input-loader.js';
 import {OneEuroFilter} from '../libs/one-euro-filter.js';
+import {InterpolationHelper} from "../libs/interpolation-helper.js";
 
 const DEFAULT_FILTER_CUTOFF = 0.001; // 1Hz. time period in milliseconds
 const DEFAULT_FILTER_BETA = 1000;
@@ -15,7 +16,7 @@ const DEFAULT_MISS_TOLERANCE = 5;
 
 class Controller {
   constructor({inputWidth, inputHeight, onUpdate=null, debugMode=false, maxTrack=1,
-    warmupTolerance=null, missTolerance=null, filterMinCF=null, filterBeta=null}) {
+    warmupTolerance=null, missTolerance=null, filterMinCF=null, filterBeta=null, interpolationFactor = 10}) {
 
     this.inputWidth = inputWidth;
     this.inputHeight = inputHeight;
@@ -24,6 +25,7 @@ class Controller {
     this.filterBeta = filterBeta === null? DEFAULT_FILTER_BETA: filterBeta;
     this.warmupTolerance = warmupTolerance === null? DEFAULT_WARMUP_TOLERANCE: warmupTolerance;
     this.missTolerance = missTolerance === null? DEFAULT_MISS_TOLERANCE: missTolerance;
+		this.interpolationFactor = interpolationFactor;
     this.cropDetector = new CropDetector(this.inputWidth, this.inputHeight, debugMode);
     this.inputLoader = new InputLoader(this.inputWidth, this.inputHeight);
     this.markerDimensions = null;
@@ -69,8 +71,10 @@ class Controller {
 
 	resetWorker() {
 		this.processingVideo = false;
-		this.worker.terminate();
-		delete this.worker;
+		if(this.worker) {
+			this.worker.terminate();
+			delete this.worker;
+		}
 	}
 
   showTFStats() {
@@ -180,7 +184,8 @@ class Controller {
 	currentModelViewTransform: null,
 	trackCount: 0,
 	trackMiss: 0,
-	filter: new OneEuroFilter({minCutOff: this.filterMinCF, beta: this.filterBeta})
+	// filter: new OneEuroFilter({minCutOff: this.filterMinCF, beta: this.filterBeta})
+				filter: new InterpolationHelper({interpolationFactor: this.interpolationFactor})
       });
       //console.log("filterMinCF", this.filterMinCF, this.filterBeta);
     }
