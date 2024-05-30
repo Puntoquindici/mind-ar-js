@@ -87,6 +87,8 @@ AFRAME.registerSystem('mindar-image-system', {
       return;
     }
 
+    window.addEventListener('resize', this._resize.bind(this));
+
     navigator.mediaDevices.getUserMedia({audio: false, video: {
       facingMode: 'environment',
     }}).then((stream) => {
@@ -110,7 +112,7 @@ AFRAME.registerSystem('mindar-image-system', {
     this.controller = new Controller({
       inputWidth: video.videoWidth,
       inputHeight: video.videoHeight,
-      maxTrack: this.maxTrack, 
+      maxTrack: this.maxTrack,
       filterMinCF: this.filterMinCF,
       filterBeta: this.filterBeta,
       missTolerance: this.missTolerance,
@@ -140,7 +142,7 @@ AFRAME.registerSystem('mindar-image-system', {
       }
     });
 
-    this._resize();
+    this._resize(false);
     window.addEventListener('resize', this._resize.bind(this));
 
     const {dimensions: imageTargetDimensions} = await this.controller.addImageTargets(this.imageTargetSrc);
@@ -160,7 +162,16 @@ AFRAME.registerSystem('mindar-image-system', {
     this.controller.processVideo(this.video);
   },
 
-  _resize: function() {
+  _resize: function(reset = true) {
+    if(reset) {
+      this.controller.resetWorker();
+      this.anchorEntities.forEach(({ el }) => {
+        el.el.object3D.visible = false;
+        el.el.emit('targetLost');
+      });
+      this._startAR();
+      return;
+    }
     const video = this.video;
     const container = this.container;
 
@@ -220,7 +231,7 @@ AFRAME.registerComponent('mindar-image', {
     const arSystem = this.el.sceneEl.systems['mindar-image-system'];
 
     arSystem.setup({
-      imageTargetSrc: this.data.imageTargetSrc, 
+      imageTargetSrc: this.data.imageTargetSrc,
       maxTrack: this.data.maxTrack,
       filterMinCF: this.data.filterMinCF === -1? null: this.data.filterMinCF,
       filterBeta: this.data.filterBeta === -1? null: this.data.filterBeta,
@@ -236,7 +247,7 @@ AFRAME.registerComponent('mindar-image', {
         arSystem.start();
       });
     }
-  },  
+  },
   remove: function () {
     const arSystem = this.el.sceneEl.systems['mindar-image-system'];
     arSystem.stop();
@@ -299,7 +310,7 @@ AFRAME.registerComponent('mindar-image-target', {
 This is a hack.
 If the user's browser has cached A-Frame,
 then A-Frame will process the webpage *before* the system and components get registered.
-Resulting in a blank page. This happens because module loading is deferred. 
+Resulting in a blank page. This happens because module loading is deferred.
 */
 /* if(needsDOMRefresh){
   console.log("mindar-face-aframe::Refreshing DOM...")

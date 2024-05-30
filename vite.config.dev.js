@@ -1,6 +1,7 @@
 import {defineConfig,build} from 'vite'
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import mkcert from 'vite-plugin-mkcert';
 
 const outDir = 'dist-dev'
 
@@ -8,7 +9,10 @@ const moduleConfig={
     mode: 'development',
     assetsInclude:'**/*.html',
     base:'./',
-    plugins:[],
+    server: {
+        host: "0.0.0.0",
+    },
+    plugins:[mkcert()],
     build: {
         outDir: outDir,
         emptyOutDir:false,
@@ -50,7 +54,7 @@ const faceAframeConfig=defineConfig({
             input:{
                 'mindar-face-aframe': './src/face-target/aframe.js',
             },
-           
+
         }
     }
 })
