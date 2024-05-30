@@ -2,8 +2,8 @@ import * as tf from '@tensorflow/tfjs';
 
 // More efficient implementation for tf.browser.fromPixels
 //   original implementation: /node_modules/@tensorflow/tfjs-backend-webgl/src/kernels/FromPixels.ts
-// 
-// This implementation return grey scale instead of RGBA in the orignal implementation 
+//
+// This implementation return grey scale instead of RGBA in the orignal implementation
 
 class InputLoader {
   constructor(width, height) {
@@ -22,7 +22,7 @@ class InputLoader {
     //this.tempPixelHandle = backend.makeTensorInfo(this.texShape, 'int32');
     this.tempPixelHandle = backend.makeTensorInfo(this.texShape, 'float32');
     // warning!!!
-    // usage type should be TextureUsage.PIXELS, but tfjs didn't export this enum type, so we hard-coded 2 here 
+    // usage type should be TextureUsage.PIXELS, but tfjs didn't export this enum type, so we hard-coded 2 here
     //   i.e. backend.texData.get(tempPixelHandle.dataId).usage = TextureUsage.PIXELS;
     backend.texData.get(this.tempPixelHandle.dataId).usage = 2;
   }
@@ -41,7 +41,8 @@ class InputLoader {
     const context = this.context;
     context.clearRect(0, 0, this.context.canvas.width, this.context.canvas.height);
 
-    const isInputRotated = input.width === this.height && input.height === this.width;
+    // const isInputRotated = input.width === this.height && input.height === this.width;
+    const isInputRotated = false;
     if (isInputRotated) { // rotate 90 degree and draw
       let x = this.context.canvas.width / 2;
       let y = this.context.canvas.height / 2;
@@ -55,7 +56,8 @@ class InputLoader {
       context.drawImage(input, -input.width / 2, -input.height / 2);
       context.restore(); // restore the context to its original state
     } else {
-      this.context.drawImage(input, 0, 0, input.width, input.height);
+      // this.context.drawImage(input, 0, 0, input.width, input.height);
+      this.context.drawImage(input, 0, 0, this.width, this.height);
     }
 
     const backend = tf.backend();

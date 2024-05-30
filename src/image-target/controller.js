@@ -68,6 +68,7 @@ class Controller {
   }
 
 	resetWorker() {
+		this.processingVideo = false;
 		this.worker.terminate();
 		delete this.worker;
 	}
@@ -266,10 +267,10 @@ class Controller {
 	      clone[j] = trackingState.trackingMatrix[j];
 	    }
 
-      const isInputRotated = input.width === this.inputHeight && input.height === this.inputWidth;
-      if (isInputRotated) {
-        clone = this.getRotatedZ90Matrix(clone);
-      }
+      // const isInputRotated = input.width === this.inputHeight && input.height === this.inputWidth;
+      // if (isInputRotated) {
+      //   clone = this.getRotatedZ90Matrix(clone);
+      // }
 
 	    this.onUpdate && this.onUpdate({type: 'updateMatrix', targetIndex: i, worldMatrix: clone});
 	  }

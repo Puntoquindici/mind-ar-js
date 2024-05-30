@@ -154,7 +154,7 @@ AFRAME.registerSystem('mindar-image-system', {
       }
     }
 
-    await this.controller.dummyRun(this.video);
+    // await this.controller.dummyRun(this.video);
     this.el.emit("arReady");
     this.ui.hideLoading();
     this.ui.showScanning();
@@ -164,16 +164,19 @@ AFRAME.registerSystem('mindar-image-system', {
 
   _resize: function(reset = true) {
     if(reset) {
+      console.log('called resize with reset');
       this.controller.resetWorker();
       this.anchorEntities.forEach(({ el }) => {
         el.el.object3D.visible = false;
         el.el.emit('targetLost');
       });
-      this._startAR();
+      setTimeout(() => this._startAR(), 100);
       return;
     }
     const video = this.video;
     const container = this.container;
+
+    console.error("resize!", video.videoWidth, video.videoHeight, container.clientWidth, container.clientHeight);
 
     let vw, vh; // display css width, height
     const videoRatio = video.videoWidth / video.videoHeight;
@@ -191,7 +194,7 @@ AFRAME.registerSystem('mindar-image-system', {
     const near = proj[14] / (proj[10] - 1.0);
     const far = proj[14] / (proj[10] + 1.0);
     const ratio = proj[5] / proj[0]; // (r-l) / (t-b)
-    //console.log("loaded proj: ", proj, ". fov: ", fov, ". near: ", near, ". far: ", far, ". ratio: ", ratio);
+    console.log("loaded proj: ", proj, ". fov: ", fov, ". near: ", near, ". far: ", far, ". ratio: ", ratio);
     const newAspect = container.clientWidth / container.clientHeight;
     const cameraEle = container.getElementsByTagName("a-camera")[0];
     const camera = cameraEle.getObject3D('camera');
