@@ -1,35 +1,30 @@
-import {FaceMesh} from "@mediapipe/face_mesh";
+import * as vision from "@mediapipe/tasks-vision";
+//import vision from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
 
 class FaceMeshHelper {
   constructor() {
-    this.detectResolve = null;
-
-    this.faceMesh = new FaceMesh({locateFile: (file) => {
-      return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`;
-    }});
-
-    this.faceMesh.setOptions({
-      maxNumFaces: 1,
-      //refineLandmarks: true,
-      refineLandmarks: false,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
-
-    this.faceMesh.onResults((results) => {
-      if (this.detectResolve) {
-	this.detectResolve(results);
-      }
+  }
+    
+  async init() {
+    const filesetResolver = await vision.FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.9/wasm"
+      //"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+    );
+    this.faceLandmarker = await vision.FaceLandmarker.createFromOptions(filesetResolver, {
+      baseOptions: {
+        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+        delegate: "GPU"
+      },
+      outputFaceBlendshapes: true,
+      // outputFacialTransformationMatrixes: true,
+      runningMode: "IMAGE",
+      numFaces: 1
     });
   }
 
   async detect(input) {
-    const results = await new Promise((resolve, reject) => {
-      this.detectResolve = resolve;
-      this.faceMesh.send({image: input});
-    });
-    //console.log("facemesh helper resuts", results);
-    return results;
+    const faceLandmarkerResult = this.faceLandmarker.detect(input);
+    return faceLandmarkerResult;
   }
 }
 
