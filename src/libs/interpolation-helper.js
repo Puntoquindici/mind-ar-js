@@ -1,5 +1,3 @@
-import { KalmanFilter } from 'kalman-filter';
-
 class InterpolationHelper {
 	xPrev = [];
 	interpolationFactor = 0;
